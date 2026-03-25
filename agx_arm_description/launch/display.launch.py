@@ -113,7 +113,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "end_effector",
             default_value="none",
-            choices=["none", "gripper", "revo2_left", "revo2_right","teach"],
+            choices=["none", "gripper", "revo2_left", "revo2_right","teach","pika"],
             description="末端执行器类型（revo2 型号无效，改用 revo2_side）",
         ),
         DeclareLaunchArgument(

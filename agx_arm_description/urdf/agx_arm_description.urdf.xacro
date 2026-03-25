@@ -80,6 +80,17 @@
         <parent link="link6"/>
         <child link="gripper_base"/>
     </joint>
+    </xacro:if>
+
+    <xacro:if value="${ee == 'pika'}">
+      <xacro:include filename="${urdf_root}/piper/urdf/piper_description.urdf"/>
+      <xacro:include filename="$(find agx_arm_description)/urdf/pika2_gripper.urdf"/>
+
+    <joint name="gripper_base_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <parent link="link6"/>
+        <child link="gripper_base_link"/>
+    </joint>
 
     </xacro:if>
 
@@ -117,6 +128,18 @@
 
     </xacro:if>
 
+    <xacro:if value="${ee == 'pika'}">
+      <xacro:include filename="${urdf_root}/piper_h/urdf/piper_h_description.urdf"/>
+      <xacro:include filename="$(find agx_arm_description)/urdf/pika2_gripper.urdf"/>
+
+    <joint name="gripper_base_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <parent link="link6"/>
+        <child link="gripper_base_link"/>
+    </joint>
+
+    </xacro:if>
+
   </xacro:if>
 
   <!-- ================================================================
@@ -147,8 +170,20 @@
         <parent link="link6"/>
         <child link="gripper_base"/>
     </joint>
+    </xacro:if>
+
+    <xacro:if value="${ee == 'pika'}">
+      <xacro:include filename="${urdf_root}/piper_l/urdf/piper_l_description.urdf"/>
+      <xacro:include filename="$(find agx_arm_description)/urdf/pika2_gripper.urdf"/>
+
+    <joint name="gripper_base_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <parent link="link6"/>
+        <child link="gripper_base_link"/>
+    </joint>
 
     </xacro:if>
+
   </xacro:if>
 
   <!-- ================================================================
@@ -180,6 +215,19 @@
         <child link="gripper_base"/>
     </joint>
     </xacro:if>
+
+    <xacro:if value="${ee == 'pika'}">
+      <xacro:include filename="${urdf_root}/piper_x/urdf/piper_x_description.urdf"/>
+      <xacro:include filename="$(find agx_arm_description)/urdf/pika2_gripper.urdf"/>
+
+    <joint name="gripper_base_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="0 0 1.5707963"/>
+        <parent link="link6"/>
+        <child link="gripper_base_link"/>
+    </joint>
+
+    </xacro:if>
+
   </xacro:if>
 
   <!-- ================================================================
@@ -210,8 +258,20 @@
           <parent link="gripper_flange"/>
           <child link="gripper_base"/>
       </joint>
+    </xacro:if>
+
+    <xacro:if value="${ee == 'pika'}">
+      <xacro:include filename="$(find agx_arm_description)/agx_arm_urdf/nero/urdf/nero_with_gripper_flange_description.xacro"/>
+      <xacro:include filename="$(find agx_arm_description)/urdf/pika2_gripper.urdf"/>
+
+    <joint name="gripper_base_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <parent link="gripper_flange"/>
+        <child link="gripper_base_link"/>
+    </joint>
 
     </xacro:if>
+
   </xacro:if>
 
   <!-- ================================================================
