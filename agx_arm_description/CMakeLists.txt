@@ -15,6 +15,7 @@ install(
     config
     rviz
     scripts
+    meshes
   DESTINATION share/${PROJECT_NAME}/
 )
 

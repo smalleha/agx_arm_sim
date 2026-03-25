@@ -1,75 +1,102 @@
 # agx_arm_description
 
-AgileX 系列机械臂的 ROS2 `description` 功能包，支持通过参数选择机械臂型号与末端执行器，在 RViz2 中可视化 URDF/Xacro 模型。
+AgileX 系列机械臂的 ROS 2 Description 功能包。
 
-## 支持的机械臂型号
-
-| `arm_type` 参数 | 型号名称 | 末端执行器选项 |
-|---|---|---|
-| `piper` | Piper | none / gripper / revo2_left / revo2_right |
-| `piper_h` | Piper H | none / gripper / revo2_left / revo2_right |
-| `piper_l` | Piper L | none / gripper / revo2_left / revo2_right |
-| `piper_x` | Piper X | none / gripper / revo2_left / revo2_right |
-| `nero` | Nero | none / gripper / revo2_left / revo2_right |
-| `revo2` | Revo2 灵巧手 | left / right（通过 `revo2_side` 参数区分） |
+通过统一的 Xacro 入口文件 `urdf/agx_arm_description.urdf.xacro`，以参数化方式支持多种机械臂型号、末端执行器、相机支架和 RealSense D435 相机的灵活组合，在 RViz2 中可视化 URDF 模型。
 
 ---
 
-## 目录结构
+## 目录
+
+- [支持的机械臂型号](#支持的机械臂型号)
+- [功能包结构](#功能包结构)
+- [依赖](#依赖)
+- [安装](#安装)
+- [使用方法](#使用方法)
+  - [Launch 参数说明](#launch-参数说明)
+  - [常用启动命令](#常用启动命令)
+  - [相机支架挂载逻辑](#相机支架挂载逻辑)
+- [在其他 Launch 文件中引用](#在其他-launch-文件中引用)
+- [直接调用 xacro 解析](#直接调用-xacro-解析)
+
+---
+
+## 支持的机械臂型号
+
+| `arm_type` | 型号 | 可选末端执行器 |
+|---|---|---|
+| `piper` | Piper | `none` / `gripper` / `revo2_left` / `revo2_right` |
+| `piper_h` | Piper H | `none` / `gripper` / `revo2_left` / `revo2_right` |
+| `piper_l` | Piper L | `none` / `gripper` / `revo2_left` / `revo2_right` |
+| `piper_x` | Piper X | `none` / `gripper` / `revo2_left` / `revo2_right` |
+| `nero` | Nero | `none` / `gripper` / `revo2_left` / `revo2_right` |
+| `revo2` | Revo2 灵巧手 | 通过 `revo2_side` 参数选择 `left` / `right` |
+
+---
+
+## 功能包结构
 
 ```
 agx_arm_description/
-├── agx_arm_urdf/           # git submodule（来自 agilexrobotics/agx_arm_urdf）
+├── agx_arm_urdf/                        # git submodule（来自 agilexrobotics/agx_arm_urdf）
 │   ├── piper/
 │   │   ├── meshes/dae/
 │   │   └── urdf/
-│   ├── piper_h/  ...
-│   └── ...
+│   ├── piper_h/
+│   ├── piper_l/
+│   ├── piper_x/
+│   ├── nero/
+│   └── revo2/
+├── meshes/
+│   └── realsense_mid_stand.dae          # 相机支架 3D 模型
+├── urdf/
+│   └── agx_arm_description.urdf.xacro  # 统一入口 Xacro 文件
 ├── launch/
-│   ├── display.launch.py   # 主 launch：带 RViz2 可视化
-│   └── load_urdf.launch.py # 仅加载 robot_description，供其他 launch include
+│   ├── display.launch.py               # 主 launch：带 RViz2 可视化
 ├── config/
-│   └── arm_config.yaml     # 参数默认值与型号信息
+│   └── arm_config.yaml
 ├── rviz/
-│   └── default.rviz        # 内置 RViz2 配置
-├── scripts/
-│   └── get_urdf_path.py    # CLI 工具：查询 URDF 路径
+│   └── default.rviz
 ├── CMakeLists.txt
 └── package.xml
 ```
 
 ---
 
-## 安装与编译
+## 依赖
 
-### 1. 克隆仓库（含子模块）
+**ROS 2 包：**
+
+```bash
+sudo apt install \
+  ros-$ROS_DISTRO-robot-state-publisher \
+  ros-$ROS_DISTRO-joint-state-publisher \
+  ros-$ROS_DISTRO-joint-state-publisher-gui \
+  ros-$ROS_DISTRO-rviz2 \
+  ros-$ROS_DISTRO-xacro
+```
+
+## 安装
+
+### 1. 克隆并初始化子模块
 
 ```bash
 cd ~/ros2_ws/src
 
 # 克隆本功能包
-git clone <your_repo_url> agx_arm_description
+git clone https://github.com/smalleha/agx_arm_sim.git
 
 # 初始化 agx_arm_urdf 子模块
 cd agx_arm_description
-git submodule add https://github.com/agilexrobotics/agx_arm_urdf.git agx_arm_urdf
 git submodule update --init --recursive
 ```
 
-> 如果已有 `agx_arm_urdf` 目录（已手动克隆），也可直接放入功能包根目录。
-
-### 2. 安装依赖
+2. 安装依赖并编译
 
 ```bash
 cd ~/ros2_ws
 rosdep install --from-paths src --ignore-src -r -y
-```
-
-### 3. 编译
-
-```bash
-cd ~/ros2_ws
-colcon build --packages-select agx_arm_description
+colcon build 
 source install/setup.bash
 ```
 
@@ -77,84 +104,75 @@ source install/setup.bash
 
 ## 使用方法
 
-### 查看机械臂模型（带 RViz2）
+### Launch 参数说明
+
+| 参数 | 默认值 | 可选值 | 说明 |
+|---|---|---|---|
+| `arm_type` | `piper` | `piper` `piper_h` `piper_l` `piper_x` `nero` `revo2` | 机械臂型号 |
+| `end_effector` | `none` | `none` `gripper` `revo2_left` `revo2_right` | 末端执行器（`revo2` 型号无效） |
+| `revo2_side` | `right` | `left` `right` | 仅当 `arm_type:=revo2` 时生效 |
+| `with_camera_stand` | `false` | `true` `false` | 是否加载相机支架 |
+| `with_camera` | `false` | `true` `false` | 是否加载 RealSense D435（需同时设 `with_camera_stand:=true`） |
+| `use_gui` | `true` | `true` `false` | 是否启动关节滑条 GUI |
+| `rviz_config` | 内置配置 | 任意 `.rviz` 路径 | 自定义 RViz2 配置文件 |
+
+### 常用启动命令
 
 ```bash
-# 基础 piper（无末端）
-ros2 launch agx_arm_description display.launch.py arm_type:=piper
+# 默认（piper 基础型，无末端，无相机）
+ros2 launch agx_arm_description display.launch.py
 
-# piper 带夹爪
+# 指定型号
+ros2 launch agx_arm_description display.launch.py arm_type:=piper_h
+
+# 带夹爪
 ros2 launch agx_arm_description display.launch.py arm_type:=piper end_effector:=gripper
 
-# piper 带右手灵巧手
-ros2 launch agx_arm_description display.launch.py arm_type:=piper end_effector:=revo2_right
-
-# nero 带夹爪，不显示关节滑条
-ros2 launch agx_arm_description display.launch.py arm_type:=nero end_effector:=gripper use_gui:=false
+# 带右手灵巧手
+ros2 launch agx_arm_description display.launch.py arm_type:=nero end_effector:=revo2_right
 
 # revo2 左手
 ros2 launch agx_arm_description display.launch.py arm_type:=revo2 revo2_side:=left
 
-# 使用自定义 RViz 配置
-ros2 launch agx_arm_description display.launch.py arm_type:=piper_h \
-    rviz_config:=/path/to/my.rviz
-```
+# 带相机支架（不含相机）
+ros2 launch agx_arm_description display.launch.py \
+  arm_type:=piper end_effector:=gripper \
+  with_camera_stand:=true
 
-### launch 参数说明
+# 带相机支架 + RealSense D435
+ros2 launch agx_arm_description display.launch.py \
+  arm_type:=piper end_effector:=gripper \
+  with_camera_stand:=true with_camera:=true
 
-| 参数 | 默认值 | 说明 |
-|---|---|---|
-| `arm_type` | `piper` | 机械臂型号 |
-| `end_effector` | `none` | 末端执行器（`none`/`gripper`/`revo2_left`/`revo2_right`） |
-| `revo2_side` | `right` | 仅当 `arm_type=revo2` 时生效（`left`/`right`） |
-| `use_gui` | `true` | 是否启动 `joint_state_publisher_gui` 滑条 |
-| `rviz_config` | 内置配置 | 自定义 RViz2 `.rviz` 配置文件路径 |
-
-### 仅加载 robot_description（被其他 launch 引用）
-
-```python
-# 在其他 launch.py 中 include
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from ament_index_python.packages import get_package_share_directory
-
-IncludeLaunchDescription(
-    PythonLaunchDescriptionSource([
-        get_package_share_directory('agx_arm_description'),
-        '/launch/load_urdf.launch.py'
-    ]),
-    launch_arguments={
-        'arm_type': 'piper',
-        'end_effector': 'gripper',
-    }.items(),
-)
-```
-
-### CLI 工具：查询 URDF 路径
-
-```bash
-# 查看 nero 带夹爪的文件路径
-ros2 run agx_arm_description get_urdf_path.py --arm_type nero --end_effector gripper
-
-# 打印解析后的 URDF XML
-ros2 run agx_arm_description get_urdf_path.py --arm_type piper --print_xml
-
-# 列出所有支持的型号
-ros2 run agx_arm_description get_urdf_path.py --list
+# nero + 夹爪 + 相机（自动使用 nero 专属挂载偏移）
+ros2 launch agx_arm_description display.launch.py \
+  arm_type:=nero end_effector:=gripper \
+  with_camera_stand:=true with_camera:=true
 ```
 
 ---
 
-## 依赖
+##  xacro 解析
 
-- `robot_state_publisher`
-- `joint_state_publisher`
-- `joint_state_publisher_gui`
-- `rviz2`
-- `xacro`
+无需 ROS 2 launch，可直接在命令行解析 xacro 文件进行调试：
+
+```bash
+# piper 基础型
+xacro urdf/agx_arm_description.urdf.xacro arm_type:=piper
+
+# nero + 夹爪 + 相机
+xacro urdf/agx_arm_description.urdf.xacro \
+  arm_type:=nero \
+  end_effector:=gripper \
+  with_camera_stand:=true \
+  with_camera:=true
+
+# 输出到文件
+xacro urdf/agx_arm_description.urdf.xacro arm_type:=piper > piper.urdf
+```
 
 ---
 
 ## License
 
-MIT License — 与上游 [agx_arm_urdf](https://github.com/agilexrobotics/agx_arm_urdf) 保持一致。
+MIT License

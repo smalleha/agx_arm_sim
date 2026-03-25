@@ -5,11 +5,20 @@ agx_arm_description — display.launch.py
 launch 参数直接作为 xacro mappings 传入，由 xacro 解析后注入 robot_description。
 
 使用示例:
+  # 默认 piper，无支架无相机
   ros2 launch agx_arm_description display.launch.py
+
+  # piper 带夹爪
   ros2 launch agx_arm_description display.launch.py arm_type:=piper end_effector:=gripper
-  ros2 launch agx_arm_description display.launch.py arm_type:=nero  end_effector:=revo2_right
+
+  # 带相机支架（无相机）
+  ros2 launch agx_arm_description display.launch.py with_camera_stand:=true
+
+  # 带支架 + RealSense D435
+  ros2 launch agx_arm_description display.launch.py with_camera_stand:=true with_camera:=true
+
+  # revo2 左手
   ros2 launch agx_arm_description display.launch.py arm_type:=revo2 revo2_side:=left
-  ros2 launch agx_arm_description display.launch.py arm_type:=piper_h use_gui:=false
 """
 
 import os
@@ -24,18 +33,14 @@ import xacro
 
 
 def launch_setup(context, *args, **kwargs):
-    # ------------------------------------------------------------------
-    # 读取 launch 参数
-    # ------------------------------------------------------------------
-    arm_type     = LaunchConfiguration("arm_type").perform(context)
-    end_effector = LaunchConfiguration("end_effector").perform(context)
-    revo2_side   = LaunchConfiguration("revo2_side").perform(context)
-    use_gui      = LaunchConfiguration("use_gui").perform(context)
-    rviz_config  = LaunchConfiguration("rviz_config").perform(context)
+    arm_type          = LaunchConfiguration("arm_type").perform(context)
+    end_effector      = LaunchConfiguration("end_effector").perform(context)
+    revo2_side        = LaunchConfiguration("revo2_side").perform(context)
+    with_camera_stand = LaunchConfiguration("with_camera_stand").perform(context)
+    with_camera       = LaunchConfiguration("with_camera").perform(context)
+    use_gui           = LaunchConfiguration("use_gui").perform(context)
+    rviz_config       = LaunchConfiguration("rviz_config").perform(context)
 
-    # ------------------------------------------------------------------
-    # 定位唯一入口 xacro 文件
-    # ------------------------------------------------------------------
     pkg_share  = get_package_share_directory("agx_arm_description")
     xacro_file = os.path.join(pkg_share, "urdf", "agx_arm_description.urdf.xacro")
 
@@ -44,27 +49,22 @@ def launch_setup(context, *args, **kwargs):
             f"[agx_arm_description] 找不到入口 xacro 文件:\n  {xacro_file}"
         )
 
-    # ------------------------------------------------------------------
-    # 将 launch 参数作为 xacro mappings 传入，解析为 URDF XML 字符串
-    # ------------------------------------------------------------------
     robot_description_content = xacro.process_file(
         xacro_file,
         mappings={
-            "arm_type":     arm_type,
-            "end_effector": end_effector,
-            "revo2_side":   revo2_side,
+            "arm_type":          arm_type,
+            "end_effector":      end_effector,
+            "revo2_side":        revo2_side,
+            "with_camera_stand": with_camera_stand,
+            "with_camera":       with_camera,
         },
     ).toxml()
 
-    # ------------------------------------------------------------------
-    # 确认 RViz 配置文件路径
-    # ------------------------------------------------------------------
     if not rviz_config or not os.path.exists(rviz_config):
         rviz_config = os.path.join(pkg_share, "rviz", "default.rviz")
 
-
     return [
-        # robot_state_publisher — 订阅解析完毕的 URDF XML
+
         Node(
             package="robot_state_publisher",
             executable="robot_state_publisher",
@@ -73,7 +73,6 @@ def launch_setup(context, *args, **kwargs):
             parameters=[{"robot_description": robot_description_content}],
         ),
 
-        # joint_state_publisher_gui（带关节滑条）
         Node(
             package="joint_state_publisher_gui",
             executable="joint_state_publisher_gui",
@@ -82,7 +81,6 @@ def launch_setup(context, *args, **kwargs):
             condition=IfCondition(use_gui),
         ),
 
-        # joint_state_publisher（无 GUI，适合脚本/仿真场景）
         Node(
             package="joint_state_publisher",
             executable="joint_state_publisher",
@@ -91,7 +89,6 @@ def launch_setup(context, *args, **kwargs):
             condition=UnlessCondition(use_gui),
         ),
 
-        # RViz2
         Node(
             package="rviz2",
             executable="rviz2",
@@ -116,7 +113,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "end_effector",
             default_value="none",
-            choices=["none", "gripper", "revo2_left", "revo2_right"],
+            choices=["none", "gripper", "revo2_left", "revo2_right","teach"],
             description="末端执行器类型（revo2 型号无效，改用 revo2_side）",
         ),
         DeclareLaunchArgument(
@@ -124,6 +121,18 @@ def generate_launch_description():
             default_value="right",
             choices=["left", "right"],
             description="仅当 arm_type=revo2 时生效：left | right",
+        ),
+        DeclareLaunchArgument(
+            "with_camera_stand",
+            default_value="false",
+            choices=["true", "false"],
+            description="是否加载相机支架（固定挂在 gripper_base 上）",
+        ),
+        DeclareLaunchArgument(
+            "with_camera",
+            default_value="false",
+            choices=["true", "false"],
+            description="是否加载 RealSense D435 相机（须同时设 with_camera_stand:=true）",
         ),
         DeclareLaunchArgument(
             "use_gui",
